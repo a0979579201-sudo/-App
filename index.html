@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記帳APP</title>
+
+  <!-- 1. 設定 App 在手機桌面的名稱與全螢幕模式 -->
+  <meta name="apple-mobile-web-app-title" content="記帳APP">
+  <meta name="application-name" content="記帳APP">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- 2. 指定桌面的 Icon 圖片 (請確保資料夾內有一張名為 icon.png 的圖片) -->
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- 3. CSS 樣式 (內嵌於 HTML 中) -->
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f7f6;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+      color: #334155;
+    }
+
+    /* 財務總覽卡片 */
+    .balance-card {
+      display: flex;
+      justify-content: space-between;
+      background-color: #1e293b;
+      color: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .balance-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .balance-item span {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0;
+    }
+
+    .balance-item h3 {
+      margin-top: 6px;
+      font-size: 1.1rem;
+    }
+
+    .income-text { color: #4ade80; }
+    .expense-text { color: #f87171; }
+
+    /* 表單樣式 */
+    #record-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      background-color: #fff;
+    }
+
+    input:focus, select:focus {
+      border-color: #3b82f6;
+    }
+
+    .submit-btn {
+      margin-top: 8px;
+      padding: 12px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .submit-btn:hover {
+      background-color: #2563eb;
+    }
+
+    /* 歷史明細 - 月份卡片區域 */
+    .month-group {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+
+    .month-header {
+      background: #f1f5f9;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .month-header:hover {
+      background: #e2e8f0;
+    }
+
+    .month-title {
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #1e293b;
+    }
+
+    .month-summary {
+      font-size: 0.85rem;
+      color: #ef4444;
+      font-weight: 600;
+      background: #fee2e2;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .month-body {
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .month-body.collapsed {
+      display: none; /* 點擊後收合 */
+    }
+
+    /* 單筆紀錄排版 */
+    .record-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background-color: #f8fafc;
+      border-left: 4px solid #cbd5e1;
+    }
+
+    .record-item.income { border-left-color: #4ade80; }
+    .record-item.expense { border-left-color: #f87171; }
+
+    .record-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .record-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+
+    .record-date {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .record-amount-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .delete-btn:hover {
+      color: #ef4444;
+      background-color: #fee2e2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 個人記帳本</h1>
+
+    <!-- 財務卡片總覽 -->
+    <div class="balance-card">
+      <div class="balance-item">
+        <span>總收入 <button id="edit-initial-btn" class="icon-btn">✏️</button></span>
+        <h3 id="total-income" class="income-text">$0</h3>
+      </div>
+      <div class="balance-item">
+        <span>總支出</span>
+        <h3 id="total-expense" class="expense-text">$0</h3>
+      </div>
+      <div class="balance-item">
+        <span>結餘</span>
+        <h3 id="net-balance">$0</h3>
+      </div>
+    </div>
+
+    <!-- 新增紀錄表單 -->
+    <form id="record-form">
+      <div class="form-group">
+        <label for="type">類型</label>
+        <select id="type">
+          <option value="expense">支出 💸</option>
+          <option value="income">收入 💵</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="category">分類</label>
+        <select id="category">
+          <option value="飲食">飲食 🍔</option>
+          <option value="交通">交通 🚌</option>
+          <option value="娛樂">娛樂 🎮</option>
+          <option value="日常">日常 🛒</option>
+          <option value="學習/設備">學習/設備 💻</option>
+          <option value="其他">其他 📦</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="amount">金額</label>
+        <input type="number" id="amount" placeholder="例如：120" required min="1">
+      </div>
+
+      <div class="form-group">
+        <label for="note">備註</label>
+        <input type="text" id="note" placeholder="例如：午餐便當">
+      </div>
+
+      <button type="submit" class="submit-btn">新增一筆</button>
+    </form>
+
+    <!-- 明細列表 -->
+    <div class="history-section">
+      <h2>歷史明細</h2>
+      <div id="monthly-records-container">
+        <!-- JS 動態繪製區域 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. JavaScript 邏輯 (內嵌於 HTML 中) -->
+  <script>
+    // DOM 元素宣告
+    const form = document.getElementById('record-form');
+    const typeInput = document.getElementById('type');
+    const categoryInput = document.getElementById('category');
+    const amountInput = document.getElementById('amount');
+    const noteInput = document.getElementById('note');
+
+    const totalIncomeEl = document.getElementById('total-income');
+    const totalExpenseEl = document.getElementById('total-expense');
+    const netBalanceEl = document.getElementById('net-balance');
+    const containerEl = document.getElementById('monthly-records-container');
+    const editInitialBtn = document.getElementById('edit-initial-btn');
+
+    // 讀取本地資料
+    let records = JSON.parse(localStorage.getItem('my_records')) || [];
+    let initialBalance = Number(localStorage.getItem('initial_balance')) || 0;
+
+    // 修改初始金額 / 預設收入
+    editInitialBtn.addEventListener('click', () => {
+      const newAmount = prompt('請輸入你的初始總金額/預設收入：', initialBalance);
+      if (newAmount !== null && !isNaN(newAmount) && newAmount.trim() !== '') {
+        initialBalance = Number(newAmount);
+        localStorage.setItem('initial_balance', initialBalance);
+        updateUI();
+      }
+    });
+
+    // 畫面渲染與計算邏輯
+    function updateUI() {
+      containerEl.innerHTML = '';
+
+      let totalIncome = initialBalance;
+      let totalExpense = 0;
+
+      const groupedRecords = {};
+
+      records.forEach((record) => {
+        // 累加總金額
+        if (record.type === 'income') {
+          totalIncome += record.amount;
+        } else {
+          totalExpense += record.amount;
+        }
+
+        // 月份 Key 處理 (例如：2026-10)
+        let monthKey = record.monthKey;
+        if (!monthKey && record.date) {
+          monthKey = record.date.substring(0, 7).replace('/', '-');
+        }
+        if (!monthKey) {
+          const now = new Date();
+          monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        if (!groupedRecords[monthKey]) {
+          groupedRecords[monthKey] = [];
+        }
+        groupedRecords[monthKey].push(record);
+      });
+
+      const sortedMonths = Object.keys(groupedRecords).sort().reverse();
+
+      if (sortedMonths.length === 0) {
+        containerEl.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px 0;">尚無記帳紀錄，新增一筆試試吧！</p>';
+      }
+
+      // 按月份印出紀錄卡片
+      sortedMonths.forEach((month) => {
+        const monthRecords = groupedRecords[month];
+
+        // 計算該月份總支出
+        const monthTotalExpense = monthRecords
+          .filter(item => item.type === 'expense')
+          .reduce((sum, item) => sum + item.amount, 0);
+
+        const parts = month.split('-');
+        const monthName = parts.length >= 2 ? `${parts[0]} 年 ${parts[1]} 月` : month;
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'month-group';
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'month-header';
+        headerDiv.innerHTML = `
+          <span class="month-title">📅 ${monthName}</span>
+          <span class="month-summary">支出：$${monthTotalExpense}</span>
+        `;
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'month-body';
+
+        // 點擊月份標題可摺疊/展開內容
+        headerDiv.addEventListener('click', () => {
+          bodyDiv.classList.toggle('collapsed');
+        });
+
+        monthRecords.forEach((record) => {
+          const itemDiv = document.createElement('div');
+          itemDiv.className = `record-item ${record.type}`;
+          const sign = record.type === 'income' ? '+' : '-';
+
+          itemDiv.innerHTML = `
+            <div class="record-info">
+              <span class="record-title">[${record.category}] ${record.note || '無備註'}</span>
+              <span class="record-date">${record.date}</span>
+            </div>
+            <div class="record-amount-group">
+              <span>${sign}$${record.amount}</span>
+              <button class="delete-btn" onclick="deleteRecord(${record.id})">✕</button>
+            </div>
+          `;
+          bodyDiv.appendChild(itemDiv);
+        });
+
+        groupDiv.appendChild(headerDiv);
+        groupDiv.appendChild(bodyDiv);
+        containerEl.appendChild(groupDiv);
+      });
+
+      // 更新頂部數據
+      totalIncomeEl.innerText = `$${totalIncome}`;
+      totalExpenseEl.innerText = `$${totalExpense}`;
+      netBalanceEl.innerText = `$${totalIncome - totalExpense}`;
+
+      // 儲存至本地瀏覽器
+      localStorage.setItem('my_records', JSON.stringify(records));
+    }
+
+    // 新增一筆紀錄
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+
+      const formattedDate = `${year}-${month}-${day}`;
+      const monthKey = `${year}-${month}`;
+
+      const newRecord = {
+        id: Date.now(),
+        type: typeInput.value,
+        category: categoryInput.value,
+        amount: Number(amountInput.value),
+        note: noteInput.value,
+        date: formattedDate,
+        monthKey: monthKey
+      };
+
+      records.unshift(newRecord);
+      updateUI();
+
+      amountInput.value = '';
+      noteInput.value = '';
+    });
+
+    // 刪除紀錄
+    function deleteRecord(id) {
+      records = records.filter(record => record.id !== id);
+      updateUI();
+    }
+
+    // 初始化畫面
+    updateUI();
+  </script>
+</body>
+</html>
